@@ -1,0 +1,19 @@
+{
+  "name": "curso-express",
+  "version": "1.0.0",
+  "description": "Curso de node.js de platzi",
+  "keywords": [],
+  "license": "MIT",
+  "author": "Maynor Lopez <maynor94l39@gmail.com>",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node --watch app.js",
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1"
+  }
+}
