@@ -8,6 +8,10 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const fs = require('fs');
+const path = require('path');
+const usersFilePath = path.join(__dirname, 'users.json');
+
 app.get('/', (req, res) => {
   res.send(`
         {
@@ -59,6 +63,56 @@ app.post('/data', (req, res) => {
     });
 });
 
+app.get('/users', (req, res) => {
+    fs.readFile(usersFilePath, 'utf8', (err, data) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error con conexión a la base de datos' });
+        }
+        const users = JSON.parse(data);
+        res.json({ users });
+    });
+});
+
+app.post('/users', (req, res) => {
+    const newUser = req.body;
+    fs.readFile(usersFilePath, 'utf8', (err, data) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error con conexión a la base de datos' });
+        }
+        const users = JSON.parse(data);
+        users.push(newUser);
+        fs.writeFile(userFilePath, JSON.stringify(users, null, 2), (err) => {
+            if (err) {
+                return res.status(500).json({ error: 'Error al guardar el usuario' });
+            }
+            res.status(201).json(newUser);
+        });
+    });
+});
+
+app.put('/users/:id', (req, res) => {
+    const userId = parseInt(req.params.id, 10);
+    const updatedUser = req.body;
+
+    console.log("BODY:", updatedUser);
+    
+    fs.readFile(usersFilePath, 'utf8', (err, data) => {  
+        if (err) {
+            return res.status(500).json({ error: 'Error con conexión a la base de datos' });
+        }
+        let  users = JSON.parse(data);
+        users = users.map(user => 
+            user.id === userId ? { ...user, ...updatedUser } : user);
+        fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), err => {
+            if (err) {
+                return res
+                .status(500)
+                .json({ error: 'Error al actualizar el usuario' });
+            }
+            res.json(updatedUser);
+        });
+    });
+});
 
 app.listen(PORT, () => {
   console.log(`Nuestra aplicacion esta funcionando en http://localhost:${PORT}`);
