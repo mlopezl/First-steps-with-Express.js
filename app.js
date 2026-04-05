@@ -2,6 +2,8 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const express = require('express');
+const loggerMiddleware = require('./middlewares/logger');
+const errorHandler = require('./middlewares/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -10,6 +12,8 @@ const { validateUser } = require('./utils/validation');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(loggerMiddleware);
+app.use(errorHandler);
 
 const fs = require('fs');
 const path = require('path');
@@ -149,6 +153,10 @@ app.delete('/users/:id', (req, res) => {
             res.status(204).send();
         });
     });
+});
+
+app.get('/error', (req, res, next) => {
+  next(new Error('Error intencional'));
 });
 
 app.listen(PORT, () => {
