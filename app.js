@@ -5,6 +5,9 @@ const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const { validateUser } = require('./utils/validation');
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -80,8 +83,14 @@ app.post('/users', (req, res) => {
             return res.status(500).json({ error: 'Error con conexión a la base de datos' });
         }
         const users = JSON.parse(data);
+
+        const validation = validateUser(newUser, users);
+        if (!validation.isValid) {
+            return res.status(400).json({ error: validation.error });
+        }
+
         users.push(newUser);
-        fs.writeFile(userFilePath, JSON.stringify(users, null, 2), (err) => {
+        fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), (err) => {
             if (err) {
                 return res.status(500).json({ error: 'Error al guardar el usuario' });
             }
@@ -93,14 +102,18 @@ app.post('/users', (req, res) => {
 app.put('/users/:id', (req, res) => {
     const userId = parseInt(req.params.id, 10);
     const updatedUser = req.body;
-
-    console.log("BODY:", updatedUser);
     
     fs.readFile(usersFilePath, 'utf8', (err, data) => {  
         if (err) {
             return res.status(500).json({ error: 'Error con conexión a la base de datos' });
         }
         let  users = JSON.parse(data);
+
+        const validation = validateUser(updatedUser, users, userId);
+        if (!validation.isValid) {
+            return res.status(400).json({ error: validation.error });
+        }
+
         users = users.map(user => 
             user.id === userId ? { ...user, ...updatedUser } : user);
         fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), err => {
@@ -110,6 +123,30 @@ app.put('/users/:id', (req, res) => {
                 .json({ error: 'Error al actualizar el usuario' });
             }
             res.json(updatedUser);
+        });
+    });
+});
+
+app.delete('/users/:id', (req, res) => {
+    const userId = parseInt(req.params.id, 10);
+    
+    fs.readFile(usersFilePath, 'utf8', (err, data) => {
+        if (err) {
+            return res.status(500).json({ error: 'Error con conexión a la base de datos' });
+        }
+        let users = JSON.parse(data);
+        const userExists = users.some(user => user.id === userId);
+        
+        if (!userExists) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        
+        users = users.filter(user => user.id !== userId);
+        fs.writeFile(usersFilePath, JSON.stringify(users, null, 2), err => {
+            if (err) {
+                return res.status(500).json({ error: 'Error al eliminar el usuario' });
+            }
+            res.status(204).send();
         });
     });
 });
