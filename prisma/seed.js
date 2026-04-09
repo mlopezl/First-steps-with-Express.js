@@ -3,7 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  Creación de usuarios de demostración
+  //Creación de usuarios de demostración
   const users = [
     { name: 'Usuario 1', email: 'usuario1@ejemplo.com' },
     { name: 'Usuario 2', email: 'usuario2@ejemplo.com' },

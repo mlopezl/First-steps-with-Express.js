@@ -8,6 +8,7 @@ const errorHandler = require('./middlewares/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const prisma = new PrismaClient();
+const authenticateToken = require('./middlewares/auth');
 
 const { validateUser } = require('./utils/validation');
 
@@ -168,6 +169,10 @@ app.delete('/users/:id', (req, res) => {
 
 app.get('/error', (req, res, next) => {
   next(new Error('Error intencional'));
+});
+
+app.get('/protected-route', authenticateToken, (req, res) => {
+    res.send('Esta es una ruta protegida');
 });
 
 app.listen(PORT, () => {
