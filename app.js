@@ -9,6 +9,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const prisma = new PrismaClient();
 const authenticateToken = require('./middlewares/auth');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const { validateUser } = require('./utils/validation');
 
@@ -174,6 +176,41 @@ app.get('/error', (req, res, next) => {
 app.get('/protected-route', authenticateToken, (req, res) => {
     res.send('Esta es una ruta protegida');
 });
+
+app.post('/register', async (req, res) => {
+    const { email, password, name } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await prisma.user.create({
+        data: {
+            email,
+            password: hashedPassword,
+            name,
+            role: 'USER'
+        }
+    });
+    res.status(201).json({ message: 'User registered successfully'});
+}); 
+
+
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+    
+    if (!user) {
+        return res.status(400).json({ error: 'Invalid email or password' });
+    }   
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+        return res.status(400).json({ error: 'Invalid email or password' });
+    }
+
+    const token = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '4h' });
+    res.json({ token });
+
+});
+
 
 app.listen(PORT, () => {
   console.log(`Nuestra aplicacion esta funcionando en http://localhost:${PORT}`);
