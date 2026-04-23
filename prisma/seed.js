@@ -1,24 +1,87 @@
-// Utilizamos el cliente de Prisma para interactuar con la base de datos
+require('dotenv').config();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { withAccelerate } = require('@prisma/extension-accelerate');
+
+const prisma = new PrismaClient().$extends(withAccelerate());
+
+const createUser = async ({ email, password, name, role }) => {
+	const hashedPassword = await bcrypt.hash(password, 10);
+	const user = await prisma.user.create({
+		data: { email, password: hashedPassword, name, role },
+	});
+
+	const token = jwt.sign(
+		{ id: user.id, role: user.role },
+		process.env.JWT_SECRET,
+		{ expiresIn: '4h' }
+	);
+
+	return { email, role, token };
+};
 
 async function main() {
-  //Creación de usuarios de demostración
-  const users = [
-    { name: 'Usuario 1', email: 'usuario1@ejemplo.com' },
-    { name: 'Usuario 2', email: 'usuario2@ejemplo.com' },
-    { name: 'Usuario 3', email: 'usuario3@ejemplo.com' }
-  ];
+	if (!process.env.JWT_SECRET) {
+		throw new Error('JWT_SECRET is required to generate tokens in prisma/seed.js');
+	}
 
-  for (const user of users) {
-    await prisma.user.create({
-      data: user
-    });
-  }
+	// Crear usuarios con contraseña hasheada y tokens JWT
+	const user1 = await createUser({
+		email: 'user12@example.com',
+		password: 'password123',
+		name: 'User One',
+		role: 'USER',
+	});
 
-  console.log('Usuarios de demostración creados con éxito');
+	const user2 = await createUser({
+		email: 'admin1@example.com',
+		password: 'admin123',
+		name: 'Admin User',
+		role: 'ADMIN',
+	});
+
+	// Crear bloques de tiempo
+	const timeBlock1 = await prisma.timeBlock.create({
+		data: {
+			startTime: new Date('2023-10-01T09:00:00Z'),
+			endTime: new Date('2023-10-01T10:00:00Z'),
+		},
+	});
+
+	const timeBlock2 = await prisma.timeBlock.create({
+		data: {
+			startTime: new Date('2023-10-01T10:00:00Z'),
+			endTime: new Date('2023-10-01T11:00:00Z'),
+		},
+	});
+
+	// Crear citas
+	await prisma.appointment.create({
+		data: {
+			date: new Date('2023-10-01T09:00:00Z'),
+			user: { connect: { email: 'user12@example.com' } },
+			timeBlock: { connect: { id: timeBlock1.id } },
+		},
+	});
+
+	await prisma.appointment.create({
+		data: {
+			date: new Date('2023-10-01T10:00:00Z'),
+			user: { connect: { email: 'admin1@example.com' } },
+			timeBlock: { connect: { id: timeBlock2.id } },
+		},
+	});
+
+	console.log('Seeded users with tokens:');
+	console.log(JSON.stringify({ user1, user2 }, null, 2));
 }
 
 main()
-  .catch(e => console.error(e))
-  .finally(async () => await prisma.$disconnect());
+	.catch((e) => {
+		console.error(e);
+		process.exit(1);
+	})
+	.finally(async () => {
+		await prisma.$disconnect();
+	});

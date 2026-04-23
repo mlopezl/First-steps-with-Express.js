@@ -3,16 +3,16 @@ dotenv.config();
 
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
-const loggerMiddleware = require('./middlewares/logger');
-const errorHandler = require('./middlewares/errorHandler');
+const loggerMiddleware = require('./src/middlewares/logger');
+const errorHandler = require('./src/middlewares/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const prisma = new PrismaClient();
-const authenticateToken = require('./middlewares/auth');
+const authenticateToken = require('./src/middlewares/auth');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const { validateUser } = require('./utils/validation');
+const { validateUser } = require('./src/utils/validation');
 
 
 app.use(express.json());
